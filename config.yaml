@@ -1,0 +1,108 @@
+# 加密货币统计套利策略配置文件
+
+# 数据配置
+data:
+  # 交易对来源: 'auto' 自动获取高交易量币对, 'manual' 手动指定
+  # 建议: 使用manual模式避免稳定币配对
+  source: 'manual'
+  
+  # 自动模式配置
+  auto:
+    quote_asset: 'USDT'  # 计价货币
+    top_n: 30            # 增加到30个，以便过滤后仍有足够数量
+  
+  # 手动模式配置（当source='manual'时使用）
+  # 重要: 避免包含稳定币（USDC, FDUSD, BUSD等），它们会导致异常的回测结果
+  # 同时也建议避免刚上线的新币或波动极其剧烈的"妖币"
+  manual:
+    symbols:
+      # Layer 1 公链 (高流动性)
+      - 'BTCUSDT'
+      - 'ETHUSDT'
+      - 'BNBUSDT'
+      - 'SOLUSDT'
+      - 'ADAUSDT'
+      - 'XRPUSDT'
+      - 'DOGEUSDT'
+      - 'DOTUSDT'
+      - 'LTCUSDT'
+      - 'AVAXUSDT'
+      - 'TRXUSDT'
+      - 'ATOMUSDT'
+      - 'NEARUSDT'
+      - 'FTMUSDT'
+      - 'SUIUSDT'  # 热门新公链
+      - 'SEIUSDT'
+      
+      # DeFi & Infrastructure
+      - 'LINKUSDT'
+      - 'UNIUSDT'
+      - 'MATICUSDT'
+      - 'AAVEUSDT'
+      - 'MKRUSDT'
+      - 'LDOUSDT'
+      
+      # Meme & Others
+      - 'SHIBUSDT'
+      - 'PEPEUSDT'
+      - 'FILUSDT'
+  
+  # 时间配置
+  timeframe:
+    interval: '1h'           # K线时间间隔: 1m, 5m, 15m, 1h, 4h, 1d
+    start_time: '2024-01-01' # 开始时间
+    end_time: null           # 结束时间（null表示当前时间）
+  
+  # 数据保存
+  save_path: './data/crypto'  # 数据保存路径
+
+# 策略配置
+strategy:
+  # 协整检验
+  cointegration:
+    pvalue_threshold: 0.05  # 放宽到0.05，以便在主流币种中找到机会
+    min_half_life: 1        # 最小半衰期（小时数）
+    max_half_life: 168      # 最大半衰期（小时数，168=1周）
+  
+  # 阈值优化
+  threshold:
+    mode: 'optimize'        # 'optimize' 优化, 'fixed' 固定
+    optimize:
+      min_sigma: 0.5        # 最小阈值（标准差倍数）
+      max_sigma: 3.0        # 最大阈值
+      num_steps: 10         # 优化步数
+    fixed:
+      sigma_multiplier: 1.96  # 固定阈值（标准差倍数）
+  
+  # 交易对选择
+  pair_selection:
+    method: 'top_pnl'       # 'top_pnl' 按PnL排序, 'diversified' 分散化
+    max_pairs: 5            # 最大交易对数量
+    no_overlap: true        # 是否避免资产重叠
+
+# 回测配置
+backtest:
+  initial_capital: 100000.0      # 初始资金 (USDT)
+  max_position_size: 10000.0     # 单个交易对最大持仓金额
+  commission_rate: 0.001         # 手续费率 (0.1%)
+  slippage_rate: 0.0005          # 滑点率 (0.05%)
+
+# 输出配置
+output:
+  results_dir: './results/crypto'  # 结果输出目录
+  save_plots: true                 # 是否保存图表
+  save_data: true                  # 是否保存数据
+  plot_format: 'png'               # 图表格式: png, pdf, svg
+
+# 日志配置
+logging:
+  level: 'INFO'  # DEBUG, INFO, WARNING, ERROR
+  file: './logs/crypto_arb.log'
+
+# Binance API配置（可选，用于实盘交易）
+# 回测不需要API密钥
+binance:
+  api_key: ''
+  api_secret: ''
+  testnet: false  # 是否使用测试网
+
