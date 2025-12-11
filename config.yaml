@@ -99,6 +99,23 @@ logging:
   level: 'INFO'  # DEBUG, INFO, WARNING, ERROR
   file: './logs/crypto_arb.log'
 
+# Dry Run 配置（模拟交易模式）
+dryrun:
+  # 状态持久化文件
+  state_file: './data/dryrun_state.json'
+  
+  # 历史数据回溯小时数（用于初始化协整分析）
+  lookback_hours: 168  # 7 天
+  
+  # 状态报告间隔（秒）
+  status_interval: 3600  # 1 小时
+  
+  # 参数重新校准间隔（秒）
+  recalibrate_interval: 86400  # 24 小时
+  
+  # 结果输出目录
+  results_dir: './results/dryrun'
+
 # Binance API配置（可选，用于实盘交易）
 # 回测不需要API密钥
 binance:
