@@ -572,13 +572,19 @@ class DryRunEngine:
         
         portfolio_value = self.initial_capital + total_realized_pnl + total_unrealized_pnl
         
+        # 确保 timestamp 是字符串格式
+        if isinstance(timestamp, (pd.Timestamp, datetime)):
+            timestamp_str = timestamp.isoformat()
+        else:
+            timestamp_str = str(timestamp)
+        
         self.portfolio_history.append({
-            'timestamp': timestamp,
-            'portfolio_value': portfolio_value,
-            'realized_pnl': total_realized_pnl,
-            'unrealized_pnl': total_unrealized_pnl,
-            'capital': self.capital,
-            'total_commission': self.total_commission
+            'timestamp': timestamp_str,
+            'portfolio_value': float(portfolio_value),
+            'realized_pnl': float(total_realized_pnl),
+            'unrealized_pnl': float(total_unrealized_pnl),
+            'capital': float(self.capital),
+            'total_commission': float(self.total_commission)
         })
     
     def process_tick(self, 
@@ -708,28 +714,51 @@ class DryRunEngine:
         
         print("=" * 60 + "\n")
     
+    def _serialize_value(self, obj):
+        """将对象转换为 JSON 可序列化的格式"""
+        if isinstance(obj, (pd.Timestamp, datetime)):
+            return obj.isoformat()
+        elif isinstance(obj, (np.integer, np.int64, np.int32)):
+            return int(obj)
+        elif isinstance(obj, (np.floating, np.float64, np.float32)):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, dict):
+            return {k: self._serialize_value(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [self._serialize_value(v) for v in obj]
+        else:
+            return obj
+    
     def save_state(self):
         """保存状态到文件"""
         if not self.state_file:
             return
         
+        # 序列化 portfolio_history 中的时间戳
+        serialized_history = []
+        for record in self.portfolio_history[-10000:]:
+            serialized_record = self._serialize_value(record)
+            serialized_history.append(serialized_record)
+        
         state = {
             'version': '1.0',
             'saved_at': datetime.now().isoformat(),
             'initial_capital': self.initial_capital,
-            'capital': self.capital,
-            'max_position_pct': self.max_position_pct,
-            'commission_rate': self.commission_rate,
-            'slippage_rate': self.slippage_rate,
+            'capital': float(self.capital),
+            'max_position_pct': float(self.max_position_pct),
+            'commission_rate': float(self.commission_rate),
+            'slippage_rate': float(self.slippage_rate),
             'start_time': self.start_time.isoformat() if self.start_time else None,
-            'total_trades': self.total_trades,
-            'winning_trades': self.winning_trades,
-            'total_commission': self.total_commission,
-            'positions': {k: v.to_dict() for k, v in self.positions.items()},
-            'pair_states': {f"{k[0]}_{k[1]}": v.to_dict() for k, v in self.pair_states.items()},
-            'cointegration_params': {f"{k[0]}_{k[1]}": v for k, v in self._cointegration_params.items()},
-            'trades': [t.to_dict() for t in self.trades[-1000:]],  # 只保留最近 1000 笔
-            'portfolio_history': self.portfolio_history[-10000:]  # 只保留最近 10000 条
+            'total_trades': int(self.total_trades),
+            'winning_trades': int(self.winning_trades),
+            'total_commission': float(self.total_commission),
+            'positions': {k: self._serialize_value(v.to_dict()) for k, v in self.positions.items()},
+            'pair_states': {f"{k[0]}_{k[1]}": self._serialize_value(v.to_dict()) for k, v in self.pair_states.items()},
+            'cointegration_params': {f"{k[0]}_{k[1]}": self._serialize_value(v) for k, v in self._cointegration_params.items()},
+            'trades': [self._serialize_value(t.to_dict()) for t in self.trades[-1000:]],  # 只保留最近 1000 笔
+            'portfolio_history': serialized_history
         }
         
         # 确保目录存在
